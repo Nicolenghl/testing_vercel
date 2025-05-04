@@ -25,6 +25,10 @@ export default function Navbar() {
                                     Home
                                 </Link>
 
+                                <Link href="/marketplace" className="text-gray-300 hover:bg-green-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
+                                    Marketplace
+                                </Link>
+
                                 {isConnected && isRestaurant && (
                                     <Link href="/restaurant/profile" className="text-gray-300 hover:bg-green-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
                                         Restaurant Dashboard
@@ -37,9 +41,11 @@ export default function Navbar() {
                                     </Link>
                                 )}
 
-                                <Link href="/marketplace" className="text-gray-300 hover:bg-green-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-                                    Marketplace
-                                </Link>
+                                {isConnected && (
+                                    <Link href="/profile" className="text-gray-300 hover:bg-green-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
+                                        My Profile
+                                    </Link>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -96,6 +102,10 @@ export default function Navbar() {
                             Home
                         </Link>
 
+                        <Link href="/marketplace" className="text-gray-300 hover:bg-green-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                            Marketplace
+                        </Link>
+
                         {isConnected && isRestaurant && (
                             <Link href="/restaurant/profile" className="text-gray-300 hover:bg-green-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
                                 Restaurant Dashboard
@@ -108,9 +118,11 @@ export default function Navbar() {
                             </Link>
                         )}
 
-                        <Link href="/marketplace" className="text-gray-300 hover:bg-green-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
-                            Marketplace
-                        </Link>
+                        {isConnected && (
+                            <Link href="/profile" className="text-gray-300 hover:bg-green-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                                My Profile
+                            </Link>
+                        )}
                     </div>
                     <div className="pt-4 pb-3 border-t border-green-700">
                         <div className="flex items-center px-5">

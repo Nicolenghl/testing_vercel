@@ -1,5 +1,10 @@
-// Contract address
-export const CONTRACT_ADDRESS = '0x405195AC344A76f38417DB32BC1635a4EA52869e';
+// This module works with both ethers.js v5 and v6
+// Contract address - deployed on Axiomesh Gemini Network (Chain ID: 23413)
+export const CONTRACT_ADDRESS = '0x405195AC344A76f38417DB32BC1635a4EA52869e'; // ⚠️ IMPORTANT: Replace with your contract address on Axiomesh Gemini
+
+// Log when contract module is loaded
+console.log("Contract module loaded with address:", CONTRACT_ADDRESS);
+console.log("Target network: Axiomesh Gemini (Chain ID: 23413)");
 
 // Full contract ABI
 export const CONTRACT_ABI = [
@@ -1057,4 +1062,36 @@ export const CONTRACT_ABI = [
         "stateMutability": "view",
         "type": "function"
     }
-]; 
+];
+
+// Helper function to verify if contract is available on current network
+export const isContractAvailable = async (provider) => {
+    if (!provider) return false;
+
+    try {
+        const code = await provider.getCode(CONTRACT_ADDRESS);
+        const contractExists = code !== '0x' && code !== '';
+
+        if (!contractExists) {
+            console.error("⚠️ No contract found at specified address. Make sure to deploy your contract to Axiomesh Gemini and update the CONTRACT_ADDRESS.");
+        }
+
+        return contractExists;
+    } catch (error) {
+        console.error("Error checking contract availability:", error);
+        return false;
+    }
+};
+
+// Network configuration for Axiomesh Gemini
+export const NETWORK_CONFIG = {
+    chainId: '0x5b75', // 23413 in hex
+    chainName: 'Axiomesh Gemini',
+    nativeCurrency: {
+        name: 'AXC',
+        symbol: 'AXC',
+        decimals: 18
+    },
+    rpcUrls: ['https://rpc5.gemini.axiomesh.io'],
+    blockExplorerUrls: ['https://scan.gemini.axiomesh.io']
+}; 
