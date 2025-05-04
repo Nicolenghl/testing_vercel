@@ -1,6 +1,6 @@
 // This module works with both ethers.js v5 and v6
 // Contract address - deployed on Axiomesh Gemini Network (Chain ID: 23413)
-export const CONTRACT_ADDRESS = '0x405195AC344A76f38417DB32BC1635a4EA52869e'; // ⚠️ IMPORTANT: Replace with your contract address on Axiomesh Gemini
+export const CONTRACT_ADDRESS = '0xF80Cb59832b6E7e97166478A5cEE51623C76f482'; // ⚠️ IMPORTANT: Replace with your contract address on Axiomesh Gemini
 
 // Log when contract module is loaded
 console.log("Contract module loaded with address:", CONTRACT_ADDRESS);
