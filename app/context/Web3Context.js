@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { CONTRACT_ADDRESS, CONTRACT_ABI, isContractAvailable, NETWORK_CONFIG } from '../contracts/contract';
+import { CONTRACT_ADDRESS, CONTRACT_ABI, isContractAvailable, NETWORK_CONFIGS } from '../contracts/contract';
 
 // Create context
 const Web3Context = createContext({
@@ -14,7 +14,7 @@ const Web3Context = createContext({
     isConnected: false,
     isRestaurant: false,
     loading: false,
-    networkValid: false,
+    networkValid: true,
     chainId: null
 });
 
@@ -27,8 +27,9 @@ export function Web3Provider({ children }) {
     const [loading, setLoading] = useState(false);
     const [isRestaurant, setIsRestaurant] = useState(false);
     const [ethersVersion, setEthersVersion] = useState(null);
-    const [networkValid, setNetworkValid] = useState(false);
+    const [networkValid, setNetworkValid] = useState(true);
     const [chainId, setChainId] = useState(null);
+    const [networkName, setNetworkName] = useState(null);
 
     // Check if MetaMask is installed
     const isMetaMaskInstalled = typeof window !== 'undefined' && window.ethereum;
@@ -45,19 +46,22 @@ export function Web3Provider({ children }) {
         setChainId(chainIdDec);
         console.log(`Network changed to: ${chainIdHex} (${chainIdDec})`);
 
-        // Check if we're on the correct network (Axiomesh Gemini = 23413)
-        const isValidNetwork = chainIdDec === 23413;
-        setNetworkValid(isValidNetwork);
-
-        if (!isValidNetwork) {
-            console.warn(`Connected to wrong network. Expected Axiomesh Gemini (23413), got ${chainIdDec}`);
-            setContract(null);
+        // Get network name if available
+        const networkConfig = NETWORK_CONFIGS[chainIdDec.toString()];
+        if (networkConfig) {
+            setNetworkName(networkConfig.chainName);
+            console.log(`Connected to known network: ${networkConfig.chainName}`);
         } else {
-            console.log("Connected to correct network: Axiomesh Gemini");
-            // If account is already connected, reinitialize contract
-            if (account && provider) {
-                initializeContract(account, provider);
-            }
+            setNetworkName("Unknown Network");
+            console.log("Connected to unknown network");
+        }
+
+        // We're being network-agnostic, so set to valid regardless
+        setNetworkValid(true);
+
+        // If account is already connected, reinitialize contract
+        if (account && provider) {
+            initializeContract(account, provider);
         }
     };
 
@@ -160,15 +164,21 @@ export function Web3Provider({ children }) {
         }
     };
 
-    // Switch to the Axiomesh Gemini network
-    const switchNetwork = async () => {
+    // Switch network function - updated to accept a chainId parameter
+    const switchNetwork = async (targetChainId = '23413') => {
         if (!isMetaMaskInstalled) return false;
+
+        const networkConfig = NETWORK_CONFIGS[targetChainId];
+        if (!networkConfig) {
+            console.error(`Network configuration not found for chain ID: ${targetChainId}`);
+            return false;
+        }
 
         try {
             // Try to switch to the network
             await window.ethereum.request({
                 method: 'wallet_switchEthereumChain',
-                params: [{ chainId: NETWORK_CONFIG.chainId }],
+                params: [{ chainId: networkConfig.chainId }],
             });
             return true;
         } catch (switchError) {
@@ -177,7 +187,7 @@ export function Web3Provider({ children }) {
                 try {
                     await window.ethereum.request({
                         method: 'wallet_addEthereumChain',
-                        params: [NETWORK_CONFIG],
+                        params: [networkConfig],
                     });
                     return true;
                 } catch (addError) {
@@ -200,23 +210,13 @@ export function Web3Provider({ children }) {
 
         setLoading(true);
         try {
-            // If we're not on the correct network, try to switch
-            if (chainId !== 23413) {
-                const switched = await switchNetwork();
-                if (!switched) {
-                    alert(`Please switch to the Axiomesh Gemini network (Chain ID: 23413) in your wallet to continue.`);
-                    setLoading(false);
-                    return;
-                }
-            }
-
-            // Request account access
+            // Request account access without requiring a specific network
             const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
             const account = accounts[0];
             setAccount(account);
 
-            // Create contract instance if on correct network
-            if (networkValid && provider) {
+            // Create contract instance
+            if (provider) {
                 await initializeContract(account, provider);
             }
 
@@ -227,7 +227,7 @@ export function Web3Provider({ children }) {
                 } else {
                     setAccount(accounts[0]);
                     // Check restaurant status for new account
-                    if (contract && networkValid) {
+                    if (contract) {
                         checkIsRestaurant(accounts[0], contract)
                             .then(status => setIsRestaurant(status));
                     }
@@ -262,7 +262,8 @@ export function Web3Provider({ children }) {
                 loading,
                 ethersVersion,
                 networkValid,
-                chainId
+                chainId,
+                networkName
             }}
         >
             {children}

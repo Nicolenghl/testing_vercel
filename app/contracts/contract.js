@@ -1,10 +1,9 @@
 // This module works with both ethers.js v5 and v6
-// Contract address - deployed on Axiomesh Gemini Network (Chain ID: 23413)
+// Contract address
 export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x38cB7800C3Fddb8dda074C1c650A155154924C73';
 
 // Log when contract module is loaded
 console.log("Contract module loaded with address:", CONTRACT_ADDRESS);
-console.log("Target network: Axiomesh Gemini (Chain ID: 23413)");
 
 // Full contract ABI
 export const CONTRACT_ABI = [
@@ -1094,7 +1093,7 @@ export const isContractAvailable = async (provider) => {
         const contractExists = code !== '0x' && code !== '';
 
         if (!contractExists) {
-            console.error("⚠️ No contract found at specified address. Make sure to deploy your contract to Axiomesh Gemini and update the CONTRACT_ADDRESS.");
+            console.error("⚠️ No contract found at specified address. Make sure the contract is deployed to the network you're connected to.");
         }
 
         return contractExists;
@@ -1104,15 +1103,57 @@ export const isContractAvailable = async (provider) => {
     }
 };
 
-// Network configuration for Axiomesh Gemini
-export const NETWORK_CONFIG = {
-    chainId: '0x5b75', // 23413 in hex
-    chainName: 'Axiomesh Gemini',
-    nativeCurrency: {
-        name: 'AXC',
-        symbol: 'AXC',
-        decimals: 18
+// Supported networks configuration
+export const NETWORK_CONFIGS = {
+    // Axiomesh Gemini
+    '23413': {
+        chainId: '0x5b75', // 23413 in hex
+        chainName: 'Axiomesh Gemini',
+        nativeCurrency: {
+            name: 'AXC',
+            symbol: 'AXC',
+            decimals: 18
+        },
+        rpcUrls: ['https://rpc5.gemini.axiomesh.io'],
+        blockExplorerUrls: ['https://scan.gemini.axiomesh.io']
     },
-    rpcUrls: ['https://rpc5.gemini.axiomesh.io'],
-    blockExplorerUrls: ['https://scan.gemini.axiomesh.io']
-}; 
+    // Ethereum Mainnet
+    '1': {
+        chainId: '0x1',
+        chainName: 'Ethereum Mainnet',
+        nativeCurrency: {
+            name: 'Ether',
+            symbol: 'ETH',
+            decimals: 18
+        },
+        rpcUrls: ['https://mainnet.infura.io/v3/'],
+        blockExplorerUrls: ['https://etherscan.io']
+    },
+    // Goerli Testnet
+    '5': {
+        chainId: '0x5',
+        chainName: 'Goerli Testnet',
+        nativeCurrency: {
+            name: 'Goerli Ether',
+            symbol: 'ETH',
+            decimals: 18
+        },
+        rpcUrls: ['https://goerli.infura.io/v3/'],
+        blockExplorerUrls: ['https://goerli.etherscan.io']
+    },
+    // Sepolia Testnet
+    '11155111': {
+        chainId: '0xaa36a7',
+        chainName: 'Sepolia Testnet',
+        nativeCurrency: {
+            name: 'Sepolia Ether',
+            symbol: 'ETH',
+            decimals: 18
+        },
+        rpcUrls: ['https://sepolia.infura.io/v3/'],
+        blockExplorerUrls: ['https://sepolia.etherscan.io']
+    }
+};
+
+// Default network for backward compatibility
+export const NETWORK_CONFIG = NETWORK_CONFIGS['23413']; 

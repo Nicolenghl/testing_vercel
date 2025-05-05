@@ -8,7 +8,7 @@ import ContractConnectionHelper from '../../components/ContractConnectionHelper'
 
 export default function RestaurantRegister() {
     const router = useRouter();
-    const { connect, account, contract, isConnected, loading, networkValid, switchNetwork, chainId } = useWeb3();
+    const { connect, account, contract, isConnected, loading, networkValid, switchNetwork, chainId, networkName } = useWeb3();
     const [registering, setRegistering] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [tokenRewardsAvailable, setTokenRewardsAvailable] = useState(true);
@@ -31,7 +31,7 @@ export default function RestaurantRegister() {
     // Check token rewards availability
     useEffect(() => {
         const checkTokenRewardsAvailability = async () => {
-            if (contract && isConnected && networkValid) {
+            if (contract && isConnected) {
                 try {
                     const available = await contract.areTokenRewardsAvailable();
                     setTokenRewardsAvailable(available);
@@ -47,7 +47,7 @@ export default function RestaurantRegister() {
         };
 
         checkTokenRewardsAvailability();
-    }, [contract, isConnected, networkValid]);
+    }, [contract, isConnected]);
 
     // Handle form input changes
     const handleChange = (e) => {
@@ -58,27 +58,11 @@ export default function RestaurantRegister() {
         }));
     };
 
-    // Handle network switch
-    const handleNetworkSwitch = async () => {
-        try {
-            await switchNetwork();
-        } catch (error) {
-            console.error("Error switching network:", error);
-            setErrorMessage("Failed to switch network. Please switch to Axiomesh Gemini manually in your wallet.");
-        }
-    };
-
     // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!isConnected) {
             await connect();
-            return;
-        }
-
-        // Check if we're on the right network
-        if (!networkValid) {
-            setErrorMessage(`You're connected to the wrong network. Please switch to Axiomesh Gemini network.`);
             return;
         }
 
@@ -108,11 +92,11 @@ export default function RestaurantRegister() {
             try {
                 const code = await contract.provider.getCode(contract.address);
                 if (code === '0x' || code === '') {
-                    throw new Error(`No contract found at ${contract.address} on current network. Make sure you've deployed your contract to Axiomesh Gemini network.`);
+                    throw new Error(`No contract found at ${contract.address} on current network. Please make sure the contract is deployed to your current network.`);
                 }
             } catch (codeError) {
                 console.error("Error checking contract code:", codeError);
-                throw new Error(`Could not verify contract at ${contract.address}. Are you on the correct network?`);
+                throw new Error(`Could not verify contract at ${contract.address}. Please check your network connection.`);
             }
 
             // Convert ETH to Wei for the transaction - handle both ethers v5 and v6 syntax
@@ -161,7 +145,7 @@ export default function RestaurantRegister() {
                 console.error("Transaction error:", txError);
 
                 if (txError.code === 'INSUFFICIENT_FUNDS') {
-                    throw new Error(`Insufficient funds for gas. Need more AXC on the Axiomesh Gemini network.`);
+                    throw new Error(`Insufficient funds for gas. Need more funds on your current network.`);
                 } else if (txError.code === 'UNPREDICTABLE_GAS_LIMIT') {
                     throw new Error(`Contract execution error. This might be due to invalid parameters or contract restrictions.`);
                 } else if (txError.message.includes("user rejected")) {
@@ -206,7 +190,7 @@ export default function RestaurantRegister() {
         <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow-lg mt-10">
             <h1 className="text-2xl font-bold text-green-800 mb-6">Restaurant Registration</h1>
 
-            {!tokenRewardsAvailable && isConnected && networkValid && (
+            {!tokenRewardsAvailable && isConnected && (
                 <div className="mb-6 p-4 bg-yellow-50 border border-yellow-300 rounded-md">
                     <p className="text-yellow-700 font-medium">
                         ⚠️ Token Rewards Notice
@@ -235,19 +219,7 @@ export default function RestaurantRegister() {
                 </div>
             )}
 
-            {isConnected && !networkValid && (
-                <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-md">
-                    <p className="text-orange-700">You need to switch to the Axiomesh Gemini network (Chain ID: 23413).</p>
-                    <button
-                        onClick={handleNetworkSwitch}
-                        className="mt-2 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
-                    >
-                        Switch to Axiomesh Gemini
-                    </button>
-                </div>
-            )}
-
-            {isConnected && networkValid && <ContractConnectionHelper />}
+            {isConnected && <ContractConnectionHelper />}
 
             {errorMessage && (
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
@@ -339,7 +311,7 @@ export default function RestaurantRegister() {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Price (AXC)</label>
+                    <label className="block text-sm font-medium text-gray-700">Price</label>
                     <input
                         type="number"
                         name="dishPrice"
@@ -360,16 +332,14 @@ export default function RestaurantRegister() {
 
                 <button
                     type="submit"
-                    disabled={registering || (!isConnected && !loading) || (isConnected && !networkValid)}
+                    disabled={registering || (!isConnected && !loading)}
                     className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400"
                 >
                     {registering
                         ? 'Registering...'
                         : !isConnected
                             ? 'Connect Wallet to Register'
-                            : !networkValid
-                                ? 'Switch to Axiomesh Network'
-                                : 'Register Restaurant'}
+                            : 'Register Restaurant'}
                 </button>
             </form>
         </div>

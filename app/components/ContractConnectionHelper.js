@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useWeb3 } from '../context/Web3Context';
-import { CONTRACT_ADDRESS, NETWORK_CONFIG } from '../contracts/contract';
+import { CONTRACT_ADDRESS, NETWORK_CONFIGS } from '../contracts/contract';
 
 export default function ContractConnectionHelper() {
-    const { account, provider, networkValid, chainId } = useWeb3();
+    const { account, provider, networkValid, chainId, networkName } = useWeb3();
     const [contractCode, setContractCode] = useState(null);
     const [loading, setLoading] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
@@ -13,7 +13,7 @@ export default function ContractConnectionHelper() {
     // Check contract code when account or network changes
     useEffect(() => {
         const checkContract = async () => {
-            if (!provider || !networkValid || !account) return;
+            if (!provider || !account) return;
 
             setLoading(true);
             try {
@@ -28,7 +28,7 @@ export default function ContractConnectionHelper() {
         };
 
         checkContract();
-    }, [provider, networkValid, account]);
+    }, [provider, account]);
 
     // Determine the status and message
     const getStatusInfo = () => {
@@ -37,14 +37,6 @@ export default function ContractConnectionHelper() {
                 status: 'warning',
                 title: 'Wallet Not Connected',
                 message: 'Connect your wallet to interact with the smart contract.'
-            };
-        }
-
-        if (!networkValid) {
-            return {
-                status: 'warning',
-                title: 'Wrong Network',
-                message: `Please switch to the Axiomesh Gemini network (Chain ID: 23413). You're currently on network ${chainId}.`
             };
         }
 
@@ -60,7 +52,7 @@ export default function ContractConnectionHelper() {
             return {
                 status: 'error',
                 title: 'Contract Not Found',
-                message: `No contract found at ${CONTRACT_ADDRESS}. You need to deploy your contract to Axiomesh Gemini.`
+                message: `No contract found at ${CONTRACT_ADDRESS} on the current network (${networkName || `Chain ID: ${chainId}`}). You need to deploy your contract to this network or switch to a network where it's deployed.`
             };
         }
 
@@ -87,6 +79,12 @@ export default function ContractConnectionHelper() {
         info: 'bg-blue-50 border-blue-200 text-blue-700'
     };
 
+    // Get the list of supported networks
+    const supportedNetworks = Object.entries(NETWORK_CONFIGS).map(([id, config]) => ({
+        id: parseInt(id),
+        name: config.chainName
+    }));
+
     return (
         <div className={`p-4 border rounded-md ${statusColors[statusInfo.status]} mb-6`}>
             <div className="flex justify-between items-center">
@@ -104,7 +102,7 @@ export default function ContractConnectionHelper() {
             {showDetails && (
                 <div className="mt-4 text-sm">
                     <p><strong>Contract Address:</strong> {CONTRACT_ADDRESS}</p>
-                    <p><strong>Network:</strong> {networkValid ? 'Axiomesh Gemini' : `Chain ID ${chainId || 'Unknown'}`}</p>
+                    <p><strong>Current Network:</strong> {networkName || `Chain ID: ${chainId || 'Unknown'}`}</p>
                     <p><strong>Contract Status:</strong> {
                         loading ? 'Checking...' :
                             contractCode === null ? 'Unknown' :
@@ -112,11 +110,20 @@ export default function ContractConnectionHelper() {
                     }</p>
 
                     <div className="mt-3">
+                        <h4 className="font-medium">Supported Networks:</h4>
+                        <ul className="list-disc ml-5 mt-1">
+                            {supportedNetworks.map(network => (
+                                <li key={network.id}>{network.name} (Chain ID: {network.id})</li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <div className="mt-3">
                         <h4 className="font-medium">Troubleshooting Steps:</h4>
                         <ol className="list-decimal ml-5 mt-1">
-                            <li>Make sure your contract is deployed to the Axiomesh Gemini network</li>
+                            <li>Make sure your contract is deployed to your current network</li>
                             <li>Update the CONTRACT_ADDRESS in app/contracts/contract.js with your deployed contract address</li>
-                            <li>Ensure your wallet has AXC tokens for transactions</li>
+                            <li>Ensure your wallet has tokens for transactions</li>
                             <li>Try refreshing the page or reconnecting your wallet</li>
                         </ol>
                     </div>
