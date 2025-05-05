@@ -14,12 +14,15 @@ export default function CustomerProfile() {
     const [loadingProfile, setLoadingProfile] = useState(false);
     const [loadingTransactions, setLoadingTransactions] = useState(false);
     const [error, setError] = useState(null);
+    const [tokenRewardsAvailable, setTokenRewardsAvailable] = useState(true);
+    const [remainingSupply, setRemainingSupply] = useState(0);
 
     // Load profile data when connected
     useEffect(() => {
         if (isConnected && contract && account) {
             loadProfileData();
             loadTransactionHistory();
+            checkTokenRewardsAvailability();
         }
     }, [isConnected, contract, account]);
 
@@ -93,6 +96,23 @@ export default function CustomerProfile() {
             setError("Failed to load transaction history. Please try again later.");
         } finally {
             setLoadingTransactions(false);
+        }
+    };
+
+    // Check token rewards availability
+    const checkTokenRewardsAvailability = async () => {
+        if (!contract) return;
+
+        try {
+            const available = await contract.areTokenRewardsAvailable();
+            setTokenRewardsAvailable(available);
+
+            const remaining = await contract.getRemainingTokenSupply();
+            // Convert from wei to token units (with 18 decimals)
+            const formattedRemaining = parseFloat(formatEth(remaining)).toFixed(0);
+            setRemainingSupply(formattedRemaining);
+        } catch (error) {
+            console.error("Error checking token rewards availability:", error);
         }
     };
 
@@ -170,6 +190,22 @@ export default function CustomerProfile() {
             <h1 className="text-2xl font-bold text-green-800 mb-6">Your Green Profile</h1>
 
             {error && <ErrorMessage />}
+
+            {!tokenRewardsAvailable && (
+                <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-300 rounded-md">
+                    <p className="text-yellow-700 font-medium">
+                        ⚠️ Token Rewards Notice
+                    </p>
+                    <p className="text-yellow-700">
+                        The maximum GreenCoin (GRC) supply has been nearly reached. You can still earn carbon credits, but GRC token rewards may be limited or unavailable.
+                    </p>
+                    {remainingSupply > 0 && (
+                        <p className="text-yellow-700 mt-2">
+                            Remaining supply: {remainingSupply} GRC
+                        </p>
+                    )}
+                </div>
+            )}
 
             {loadingProfile ? (
                 <LoadingIndicator />

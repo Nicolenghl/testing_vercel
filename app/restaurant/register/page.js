@@ -11,6 +11,8 @@ export default function RestaurantRegister() {
     const { connect, account, contract, isConnected, loading, networkValid, switchNetwork, chainId } = useWeb3();
     const [registering, setRegistering] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [tokenRewardsAvailable, setTokenRewardsAvailable] = useState(true);
+    const [remainingSupply, setRemainingSupply] = useState(0);
     const [formData, setFormData] = useState({
         restaurantName: '',
         supplySource: '0', // Default to LOCAL_PRODUCER (0)
@@ -25,6 +27,27 @@ export default function RestaurantRegister() {
     useEffect(() => {
         console.log(`Ethers version: ${ethers.version}`);
     }, []);
+
+    // Check token rewards availability
+    useEffect(() => {
+        const checkTokenRewardsAvailability = async () => {
+            if (contract && isConnected && networkValid) {
+                try {
+                    const available = await contract.areTokenRewardsAvailable();
+                    setTokenRewardsAvailable(available);
+
+                    const remaining = await contract.getRemainingTokenSupply();
+                    // Convert from wei to token units (with 18 decimals)
+                    const formattedRemaining = parseFloat(formatEther(remaining)).toFixed(0);
+                    setRemainingSupply(formattedRemaining);
+                } catch (error) {
+                    console.error("Error checking token rewards availability:", error);
+                }
+            }
+        };
+
+        checkTokenRewardsAvailability();
+    }, [contract, isConnected, networkValid]);
 
     // Handle form input changes
     const handleChange = (e) => {
@@ -111,26 +134,6 @@ export default function RestaurantRegister() {
                 throw new Error(`Failed to convert price to wei: ${parseError.message}`);
             }
 
-            // Get entry fee from contract
-            try {
-                const entryFee = await contract.ENTRY_FEE();
-                console.log(`Required entry fee: ${formatEther(entryFee)} AXC`);
-
-                // Get user balance to check if sufficient
-                const userBalance = await contract.provider.getBalance(account);
-                console.log(`User balance: ${formatEther(userBalance)} AXC`);
-
-                if (userBalance.lt(entryFee)) {
-                    throw new Error(`Insufficient balance. You need at least ${formatEther(entryFee)} AXC for the entry fee.`);
-                }
-            } catch (balanceError) {
-                console.error("Error checking balance:", balanceError);
-                if (balanceError.message.includes("invalid opcode")) {
-                    throw new Error(`Contract interaction failed. This could be due to network issues or contract incompatibility.`);
-                }
-                throw balanceError;
-            }
-
             // Call the contract function with more detailed error handling
             try {
                 const tx = await contract.restaurantRegister(
@@ -142,7 +145,6 @@ export default function RestaurantRegister() {
                     dishCarbonCredits,
                     priceInWei,
                     {
-                        value: await contract.ENTRY_FEE(),
                         gasLimit: 3000000 // Set a higher gas limit to ensure transaction completes
                     }
                 );
@@ -159,7 +161,7 @@ export default function RestaurantRegister() {
                 console.error("Transaction error:", txError);
 
                 if (txError.code === 'INSUFFICIENT_FUNDS') {
-                    throw new Error(`Insufficient funds for gas + entry fee. Need more AXC on the Axiomesh Gemini network.`);
+                    throw new Error(`Insufficient funds for gas. Need more AXC on the Axiomesh Gemini network.`);
                 } else if (txError.code === 'UNPREDICTABLE_GAS_LIMIT') {
                     throw new Error(`Contract execution error. This might be due to invalid parameters or contract restrictions.`);
                 } else if (txError.message.includes("user rejected")) {
@@ -203,6 +205,22 @@ export default function RestaurantRegister() {
     return (
         <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow-lg mt-10">
             <h1 className="text-2xl font-bold text-green-800 mb-6">Restaurant Registration</h1>
+
+            {!tokenRewardsAvailable && isConnected && networkValid && (
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-300 rounded-md">
+                    <p className="text-yellow-700 font-medium">
+                        ⚠️ Token Rewards Notice
+                    </p>
+                    <p className="text-yellow-700">
+                        The maximum GreenCoin (GRC) supply has been nearly reached. While you can still register and users can purchase dishes, token rewards may be limited or unavailable.
+                    </p>
+                    {remainingSupply > 0 && (
+                        <p className="text-yellow-700 mt-2">
+                            Remaining supply: {remainingSupply} GRC
+                        </p>
+                    )}
+                </div>
+            )}
 
             {!isConnected && (
                 <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
@@ -336,7 +354,7 @@ export default function RestaurantRegister() {
 
                 <div className="border-t border-gray-200 pt-4">
                     <p className="text-sm text-gray-500">
-                        Registration requires a one-time fee of 1 AXC.
+                        Registration is free. You only need to pay gas fees for the transaction.
                     </p>
                 </div>
 

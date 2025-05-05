@@ -16,13 +16,33 @@ export default function RestaurantDetail({ params }) {
     const [purchasingDish, setPurchasingDish] = useState(null);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+    const [tokenRewardsAvailable, setTokenRewardsAvailable] = useState(true);
+    const [remainingSupply, setRemainingSupply] = useState(0);
 
     // Load restaurant data when connected
     useEffect(() => {
         if (contract) {
             loadRestaurantData();
+            checkTokenRewardsAvailability();
         }
     }, [contract, restaurantAddress]);
+
+    // Check token rewards availability
+    const checkTokenRewardsAvailability = async () => {
+        if (!contract) return;
+
+        try {
+            const available = await contract.areTokenRewardsAvailable();
+            setTokenRewardsAvailable(available);
+
+            const remaining = await contract.getRemainingTokenSupply();
+            // Use formatEth utility to convert from wei to token units (with 18 decimals)
+            const formattedRemaining = parseFloat(formatEth(remaining)).toFixed(0);
+            setRemainingSupply(formattedRemaining);
+        } catch (error) {
+            console.error("Error checking token rewards availability:", error);
+        }
+    };
 
     // Load restaurant and dish data
     const loadRestaurantData = async () => {
@@ -206,6 +226,22 @@ export default function RestaurantDetail({ params }) {
 
             {error && <ErrorMessage message={error} />}
             {success && <SuccessMessage message={success} />}
+
+            {!tokenRewardsAvailable && isConnected && (
+                <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-300 rounded-md">
+                    <p className="text-yellow-700 font-medium">
+                        ⚠️ Token Rewards Notice
+                    </p>
+                    <p className="text-yellow-700">
+                        The maximum GreenCoin (GRC) supply has been nearly reached. You can still purchase dishes and earn carbon credits, but token rewards may be limited or unavailable.
+                    </p>
+                    {remainingSupply > 0 && (
+                        <p className="text-yellow-700 mt-2">
+                            Remaining supply: {remainingSupply} GRC
+                        </p>
+                    )}
+                </div>
+            )}
 
             {restaurantInfo && (
                 <div className="bg-white p-6 rounded-lg shadow-md mb-8">

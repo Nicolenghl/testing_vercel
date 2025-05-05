@@ -7,7 +7,6 @@ pragma solidity ^0.8.0;
 contract GreenDish {
     // =============== STATE VARIABLES =============== //
     address public owner;
-    uint public constant ENTRY_FEE = 1 ether;
     uint public dishCounter;
     bool private _locked;
 
@@ -118,13 +117,9 @@ contract GreenDish {
     );
 
     // =============== CONSTRUCTOR =============== //
-    constructor(uint _initialSupply) {
+    constructor() {
         require(msg.sender != address(0));
         owner = msg.sender;
-        require(_initialSupply * 10 ** uint256(decimals) <= MAX_SUPPLY);
-        totalSupply = _initialSupply * 10 ** uint256(decimals);
-        balances[address(this)] = totalSupply;
-        emit Transfer(address(0), address(this), totalSupply);
     }
 
     // =============== MODIFIERS =============== //
@@ -169,9 +164,8 @@ contract GreenDish {
         string memory _dishMainComponent,
         uint _dishCarbonCredits,
         uint _dishPrice
-    ) external payable nonReentrant {
+    ) external nonReentrant {
         require(!restaurants[msg.sender].isVerified);
-        require(msg.value >= ENTRY_FEE);
         require(bytes(_name).length > 0 && bytes(_name).length <= 50);
         require(
             bytes(_supplyDetails).length > 0 &&
@@ -184,12 +178,6 @@ contract GreenDish {
         );
         require(_dishPrice > 0);
         require(_dishCarbonCredits > 0 && _dishCarbonCredits <= 100);
-
-        uint excess = msg.value - ENTRY_FEE;
-        if (excess > 0) {
-            (bool success, ) = payable(msg.sender).call{value: excess}("");
-            require(success, "Refund failed");
-        }
 
         restaurants[msg.sender] = Restaurant({
             isVerified: true,
@@ -359,22 +347,35 @@ contract GreenDish {
         }("");
         require(paymentSuccess, "Payment failed");
 
-        // Process reward
-        try
-            this.processReward(_dishId, msg.sender, dish.carbonCredits)
-        returns (bool success) {
-            if (success) {
+        // Process reward directly here instead of using a separate function call
+        uint baseRewardAmount = (dish.carbonCredits *
+            10 ** uint256(decimals) *
+            REWARD_PERCENTAGE) / 100;
+        uint tierIndex = uint(customerTier[msg.sender]);
+        uint tierMultiplier = tierMultipliers[tierIndex];
+        uint rewardAmount = (baseRewardAmount * tierMultiplier) / 100;
+
+        if (rewardAmount > 0) {
+            if (totalSupply + rewardAmount <= MAX_SUPPLY) {
+                // Mint tokens directly to the customer
+                totalSupply += rewardAmount;
+                balances[msg.sender] += rewardAmount;
+                emit Transfer(address(0), msg.sender, rewardAmount);
+                emit PurchaseRewarded(_dishId, msg.sender, rewardAmount);
                 userTransactions[msg.sender][txIndex].status = TransactionStatus
                     .REWARDED;
             } else {
                 userTransactions[msg.sender][txIndex].status = TransactionStatus
                     .REWARD_FAILED;
-                emit RewardFailure(_dishId, msg.sender, "Insufficient balance");
+                emit RewardFailure(
+                    _dishId,
+                    msg.sender,
+                    "Maximum token supply reached"
+                );
             }
-        } catch {
+        } else {
             userTransactions[msg.sender][txIndex].status = TransactionStatus
-                .REWARD_FAILED;
-            emit RewardFailure(_dishId, msg.sender, "Reward error");
+                .REWARDED;
         }
     }
 
@@ -418,37 +419,6 @@ contract GreenDish {
             result[i] = userTransactions[msg.sender][startIndex + i];
         }
         return result;
-    }
-
-    // REWARD FUNCTIONS
-    function processReward(
-        uint _dishId,
-        address _recipient,
-        uint _carbonCredits
-    ) external returns (bool) {
-        require(msg.sender == address(this), "Only callable by contract");
-
-        // Calculate reward
-        uint baseRewardAmount = (_carbonCredits *
-            10 ** uint256(decimals) *
-            REWARD_PERCENTAGE) / 100;
-
-        // Apply loyalty tier multiplier
-        uint tierIndex = uint(customerTier[_recipient]);
-        uint tierMultiplier = tierMultipliers[tierIndex];
-        uint rewardAmount = (baseRewardAmount * tierMultiplier) / 100;
-
-        // Process reward
-        if (rewardAmount > 0) {
-            if (balances[address(this)] >= rewardAmount) {
-                _transfer(address(this), _recipient, rewardAmount);
-                emit PurchaseRewarded(_dishId, _recipient, rewardAmount);
-                return true;
-            } else {
-                return false;
-            }
-        }
-        return true;
     }
 
     // =============== HELPER FUNCTIONS =============== //
@@ -525,6 +495,29 @@ contract GreenDish {
         totalSupply += amount;
         balances[to] += amount;
         emit Transfer(address(0), to, amount);
+    }
+
+    function balanceOf(address account) external view returns (uint256) {
+        return balances[account];
+    }
+
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256) {
+        return allowances[owner][spender];
+    }
+
+    function areTokenRewardsAvailable() external view returns (bool) {
+        uint256 bufferAmount = MAX_SUPPLY / 100; // 1% of MAX_SUPPLY
+        return totalSupply < (MAX_SUPPLY - bufferAmount);
+    }
+
+    function getRemainingTokenSupply() external view returns (uint256) {
+        if (totalSupply >= MAX_SUPPLY) {
+            return 0;
+        }
+        return MAX_SUPPLY - totalSupply;
     }
 
     function withdrawEth(uint _amount) external onlyOwner nonReentrant {
