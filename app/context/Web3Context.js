@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { CONTRACT_ADDRESS, CONTRACT_ABI, isContractAvailable, NETWORK_CONFIGS } from '../contracts/contract';
+import { CONTRACT_ADDRESS, CONTRACT_ABI, MINIMAL_CONTRACT_ABI, isContractAvailable, NETWORK_CONFIGS } from '../contracts/contract';
 
 // Create context
 const Web3Context = createContext({
@@ -87,7 +87,7 @@ export function Web3Provider({ children }) {
 
             // Create contract instance with minimal requirements
             try {
-                const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+                const contract = new ethers.Contract(CONTRACT_ADDRESS, MINIMAL_CONTRACT_ABI, signer);
                 console.log("Contract initialized with address:", CONTRACT_ADDRESS);
                 setContract(contract);
 

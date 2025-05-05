@@ -90,9 +90,40 @@ export default function RestaurantRegister() {
 
             // Check if contract exists on the current network
             try {
+                console.log("Verifying contract exists on network...");
                 const code = await contract.provider.getCode(contract.address);
+                console.log(`Contract code length: ${code.length}`);
                 if (code === '0x' || code === '') {
                     throw new Error(`No contract found at ${contract.address} on current network. Please make sure the contract is deployed to your current network.`);
+                }
+                console.log("Contract code exists on network!");
+
+                // Verify that basic contract functions work
+                try {
+                    // Test if the contract is a GreenDish contract
+                    try {
+                        // Try both possible variable names
+                        const owner = await Promise.any([
+                            contract.contract_owner().catch(() => null),
+                            contract.owner().catch(() => null)
+                        ]);
+                        console.log("Contract owner:", owner);
+                    } catch (e) {
+                        console.warn("Could not get contract owner:", e);
+                    }
+
+                    try {
+                        // Try the restaurants function
+                        console.log("Testing restaurants mapping function...");
+                        const testRestaurantInfo = await contract.restaurants(account);
+                        console.log("Restaurant info:", testRestaurantInfo);
+                    } catch (restaurantErr) {
+                        console.warn("Could not check restaurant info:", restaurantErr);
+                        // This might not be a GreenDish contract
+                        alert("Warning: The contract doesn't appear to have the expected GreenDish functions. Registration might fail.");
+                    }
+                } catch (validationError) {
+                    console.warn("Contract validation warning:", validationError);
                 }
             } catch (codeError) {
                 console.error("Error checking contract code:", codeError);

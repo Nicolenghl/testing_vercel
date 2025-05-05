@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useWeb3 } from '../context/Web3Context';
-import { CONTRACT_ADDRESS, NETWORK_CONFIGS } from '../contracts/contract';
+import { CONTRACT_ADDRESS, NETWORK_CONFIGS, MINIMAL_CONTRACT_ABI } from '../contracts/contract';
 import { ethers } from 'ethers';
 
 export default function ContractConnectionHelper() {
@@ -89,17 +89,29 @@ export default function ContractConnectionHelper() {
                         console.log("Attempting to create contract instance for validation");
                         const contract = new ethers.Contract(
                             CONTRACT_ADDRESS,
-                            [
-                                "function dishCounter() view returns (uint256)",
-                                "function contract_owner() view returns (address)"
-                            ],
+                            MINIMAL_CONTRACT_ABI,
                             provider
                         );
 
-                        // Test basic read functions to validate contract
+                        // Try to fetch dishCounter to validate contract state
                         console.log("Testing dishCounter function...");
-                        const dishCounter = await contract.dishCounter();
-                        console.log("Contract validation passed. Dish counter:", dishCounter.toString());
+                        try {
+                            const dishCounter = await contract.dishCounter();
+                            console.log("Current dish counter:", dishCounter.toString());
+                        } catch (err) {
+                            console.warn("dishCounter function failed:", err.message);
+                            // Try an alternative function to validate the contract
+                            try {
+                                console.log("Trying alternative function: name()");
+                                const name = await contract.name();
+                                console.log("Contract name:", name);
+                                // If we get here, contract exists but might be missing dishCounter
+                                console.warn("Contract exists but dishCounter function missing. This may not be a GreenDish contract.");
+                            } catch (nameErr) {
+                                console.warn("name function failed:", nameErr.message);
+                                throw new Error("Contract functions are missing or incompatible");
+                            }
+                        }
 
                         // Check contract owner
                         console.log("Testing contract_owner function...");
