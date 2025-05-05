@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { CONTRACT_ADDRESS, CONTRACT_ABI, MINIMAL_CONTRACT_ABI, isContractAvailable, NETWORK_CONFIGS } from '../contracts/contract';
+import { CONTRACT_ADDRESS, CONTRACT_ABI, MINIMAL_CONTRACT_ABI, BASIC_CONTRACT_ABI, isContractAvailable, NETWORK_CONFIGS } from '../contracts/contract';
 
 // Create context
 const Web3Context = createContext({
@@ -11,6 +11,8 @@ const Web3Context = createContext({
     switchNetwork: async () => { },
     account: null,
     contract: null,
+    contractName: null,
+    contractSymbol: null,
     isConnected: false,
     isRestaurant: false,
     loading: false,
@@ -30,6 +32,8 @@ export function Web3Provider({ children }) {
     const [networkValid, setNetworkValid] = useState(true);
     const [chainId, setChainId] = useState(null);
     const [networkName, setNetworkName] = useState(null);
+    const [contractName, setContractName] = useState(null);
+    const [contractSymbol, setContractSymbol] = useState(null);
 
     // Check if MetaMask is installed
     const isMetaMaskInstalled = typeof window !== 'undefined' && window.ethereum;
@@ -87,7 +91,8 @@ export function Web3Provider({ children }) {
 
             // Create contract instance with minimal requirements
             try {
-                const contract = new ethers.Contract(CONTRACT_ADDRESS, MINIMAL_CONTRACT_ABI, signer);
+                console.log("Creating contract with basic ABI");
+                const contract = new ethers.Contract(CONTRACT_ADDRESS, BASIC_CONTRACT_ABI, signer);
                 console.log("Contract initialized with address:", CONTRACT_ADDRESS);
                 setContract(contract);
 
@@ -95,6 +100,23 @@ export function Web3Provider({ children }) {
                 if (!contract.address) {
                     throw new Error("Contract address is undefined");
                 }
+
+                // Try to get basic token info if available
+                try {
+                    const name = await contract.name();
+                    setContractName(name);
+                    console.log("Contract name:", name);
+
+                    const symbol = await contract.symbol();
+                    setContractSymbol(symbol);
+                    console.log("Contract symbol:", symbol);
+                } catch (infoError) {
+                    console.warn("Could not fetch token info:", infoError.message);
+                }
+
+                // We'll set isRestaurant to true by default for simplified UI
+                setIsRestaurant(true);
+
             } catch (contractError) {
                 console.error("Contract initialization error:", contractError);
                 throw new Error("Failed to initialize contract. Check address and ABI.");
@@ -107,25 +129,9 @@ export function Web3Provider({ children }) {
                     console.warn(`No contract found at ${CONTRACT_ADDRESS}. Make sure it's deployed to the current network.`);
                 } else {
                     console.log("Contract verified with code on current network");
-
-                    // Try to fetch dishCounter to validate contract state
-                    try {
-                        const dishCounter = await contract.dishCounter();
-                        console.log("Current dish counter:", dishCounter.toString());
-                    } catch (err) {
-                        console.warn("Could not fetch dish counter, contract might be incompatible:", err);
-                    }
                 }
             } catch (codeError) {
                 console.error("Error checking contract code:", codeError);
-            }
-
-            // Check if the account is a restaurant
-            try {
-                const restaurantStatus = await checkIsRestaurant(account, contract);
-                setIsRestaurant(restaurantStatus);
-            } catch (error) {
-                console.error("Error checking restaurant status:", error);
             }
         } catch (contractError) {
             console.error("Error initializing contract:", contractError);
@@ -289,6 +295,8 @@ export function Web3Provider({ children }) {
                 switchNetwork,
                 account,
                 contract,
+                contractName,
+                contractSymbol,
                 isConnected: !!account,
                 isRestaurant,
                 loading,

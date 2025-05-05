@@ -5,6 +5,54 @@ export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x2
 // Log when contract module is loaded
 console.log("Contract module loaded with address:", CONTRACT_ADDRESS);
 
+// Ultra-minimal ABI compatible with almost any token or simple contract
+export const BASIC_CONTRACT_ABI = [
+    // Basic read functions that many contracts have
+    {
+        "inputs": [],
+        "name": "name",
+        "outputs": [{ "type": "string" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "symbol",
+        "outputs": [{ "type": "string" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "decimals",
+        "outputs": [{ "type": "uint8" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "totalSupply",
+        "outputs": [{ "type": "uint256" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [{ "type": "address" }],
+        "name": "balanceOf",
+        "outputs": [{ "type": "uint256" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    // Basic transfer functions
+    {
+        "inputs": [{ "type": "address" }, { "type": "uint256" }],
+        "name": "transfer",
+        "outputs": [{ "type": "bool" }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
+];
+
 // Full contract ABI
 export const CONTRACT_ABI = [
     {

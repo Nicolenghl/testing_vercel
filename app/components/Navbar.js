@@ -1,151 +1,162 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useWeb3 } from '../context/Web3Context';
-import { formatAddress } from '../utils/ethers-helpers';
 
 export default function Navbar() {
-    const { connect, disconnect, account, isConnected, isRestaurant, loading } = useWeb3();
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const { account, connect, disconnect, isConnected, isRestaurant, switchNetwork, networkValid, chainId, contractName, contractSymbol } = useWeb3();
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    // For simplicity in this adapter UI, we treat every account as a restaurant
+    // since we can't verify in the original contract
+    const showRestaurantLinks = isConnected;
+
+    // Helper to format account address
+    const formatAddress = (address) => {
+        if (!address) return '';
+        return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+    };
 
     return (
-        <nav className="bg-green-800">
+        <nav className="bg-green-800 text-white shadow-md">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
+                <div className="flex justify-between h-16">
                     <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                            <Link href="/" className="text-white font-bold text-xl">
-                                GreenDish
+                        <Link href="/" className="flex-shrink-0 flex items-center text-2xl font-bold">
+                            GreenDish
+                        </Link>
+                        <div className="hidden md:ml-6 md:flex md:space-x-4">
+                            <Link href="/" className="px-3 py-2 text-white hover:bg-green-700 rounded-md">
+                                Home
                             </Link>
+                            <Link href="/marketplace" className="px-3 py-2 text-white hover:bg-green-700 rounded-md">
+                                Marketplace
+                            </Link>
+                            {showRestaurantLinks && (
+                                <>
+                                    <Link href="/restaurant/register" className="px-3 py-2 text-white hover:bg-green-700 rounded-md">
+                                        Register
+                                    </Link>
+                                    <Link href="/restaurant/profile" className="px-3 py-2 text-white hover:bg-green-700 rounded-md">
+                                        My Restaurant
+                                    </Link>
+                                </>
+                            )}
+                            {isConnected && (
+                                <Link href="/profile" className="px-3 py-2 text-white hover:bg-green-700 rounded-md">
+                                    My Profile
+                                </Link>
+                            )}
                         </div>
-                        <div className="hidden md:block">
-                            <div className="ml-10 flex items-baseline space-x-4">
-                                <Link href="/" className="text-gray-300 hover:bg-green-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-                                    Home
-                                </Link>
-
-                                <Link href="/marketplace" className="text-gray-300 hover:bg-green-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-                                    Marketplace
-                                </Link>
-
-                                {isConnected && isRestaurant && (
-                                    <Link href="/restaurant/profile" className="text-gray-300 hover:bg-green-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-                                        Restaurant Dashboard
-                                    </Link>
-                                )}
-
-                                {isConnected && !isRestaurant && (
-                                    <Link href="/restaurant/register" className="text-gray-300 hover:bg-green-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-                                        Register Restaurant
-                                    </Link>
-                                )}
-
-                                {isConnected && (
-                                    <Link href="/profile" className="text-gray-300 hover:bg-green-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">
-                                        My Profile
-                                    </Link>
-                                )}
+                    </div>
+                    <div className="flex items-center">
+                        {contractName && contractSymbol && (
+                            <div className="hidden md:block mr-4 bg-green-700 px-3 py-1 rounded-md">
+                                {contractName} ({contractSymbol})
                             </div>
-                        </div>
-                    </div>
-                    <div className="hidden md:block">
-                        <div className="ml-4 flex items-center md:ml-6">
-                            {!isConnected ? (
+                        )}
+                        {!isConnected ? (
+                            <button
+                                onClick={connect}
+                                className="bg-white text-green-700 px-4 py-2 rounded font-medium hover:bg-gray-100"
+                            >
+                                Connect Wallet
+                            </button>
+                        ) : (
+                            <div className="flex items-center">
+                                <span className="hidden md:inline-block mr-2 font-mono">
+                                    {formatAddress(account)}
+                                </span>
                                 <button
-                                    onClick={connect}
-                                    disabled={loading}
-                                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-800 focus:ring-white disabled:bg-gray-400"
+                                    onClick={disconnect}
+                                    className="bg-red-500 text-white px-4 py-2 rounded font-medium hover:bg-red-600"
                                 >
-                                    {loading ? 'Connecting...' : 'Connect Wallet'}
+                                    Disconnect
                                 </button>
-                            ) : (
-                                <div className="flex items-center">
-                                    <span className="text-white mr-2 px-3 py-1 bg-green-900 rounded-md">
-                                        {formatAddress(account)}
-                                    </span>
-                                    <button
-                                        onClick={disconnect}
-                                        className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-800 focus:ring-white"
-                                    >
-                                        Disconnect
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
-                    <div className="-mr-2 flex md:hidden">
+
+                    {/* Mobile menu button */}
+                    <div className="flex items-center md:hidden">
                         <button
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            className="bg-green-900 inline-flex items-center justify-center p-2 rounded-md text-green-100 hover:text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-800 focus:ring-white"
+                            onClick={() => setMenuOpen(!menuOpen)}
+                            className="inline-flex items-center justify-center p-2 rounded-md text-white hover:bg-green-700 focus:outline-none"
                         >
-                            <span className="sr-only">Open main menu</span>
-                            {!mobileMenuOpen ? (
-                                <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                                </svg>
-                            ) : (
-                                <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            )}
+                            <svg
+                                className="h-6 w-6"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                {menuOpen ? (
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
+                                ) : (
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M4 6h16M4 12h16M4 18h16"
+                                    />
+                                )}
+                            </svg>
                         </button>
                     </div>
                 </div>
             </div>
 
             {/* Mobile menu */}
-            {mobileMenuOpen && (
+            {menuOpen && (
                 <div className="md:hidden">
                     <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                        <Link href="/" className="text-gray-300 hover:bg-green-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                        <Link
+                            href="/"
+                            className="block px-3 py-2 text-white hover:bg-green-700 rounded-md"
+                            onClick={() => setMenuOpen(false)}
+                        >
                             Home
                         </Link>
-
-                        <Link href="/marketplace" className="text-gray-300 hover:bg-green-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                        <Link
+                            href="/marketplace"
+                            className="block px-3 py-2 text-white hover:bg-green-700 rounded-md"
+                            onClick={() => setMenuOpen(false)}
+                        >
                             Marketplace
                         </Link>
-
-                        {isConnected && isRestaurant && (
-                            <Link href="/restaurant/profile" className="text-gray-300 hover:bg-green-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
-                                Restaurant Dashboard
-                            </Link>
+                        {showRestaurantLinks && (
+                            <>
+                                <Link
+                                    href="/restaurant/register"
+                                    className="block px-3 py-2 text-white hover:bg-green-700 rounded-md"
+                                    onClick={() => setMenuOpen(false)}
+                                >
+                                    Register Restaurant
+                                </Link>
+                                <Link
+                                    href="/restaurant/profile"
+                                    className="block px-3 py-2 text-white hover:bg-green-700 rounded-md"
+                                    onClick={() => setMenuOpen(false)}
+                                >
+                                    My Restaurant
+                                </Link>
+                            </>
                         )}
-
-                        {isConnected && !isRestaurant && (
-                            <Link href="/restaurant/register" className="text-gray-300 hover:bg-green-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
-                                Register Restaurant
-                            </Link>
-                        )}
-
                         {isConnected && (
-                            <Link href="/profile" className="text-gray-300 hover:bg-green-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
+                            <Link
+                                href="/profile"
+                                className="block px-3 py-2 text-white hover:bg-green-700 rounded-md"
+                                onClick={() => setMenuOpen(false)}
+                            >
                                 My Profile
                             </Link>
                         )}
-                    </div>
-                    <div className="pt-4 pb-3 border-t border-green-700">
-                        <div className="flex items-center px-5">
-                            {!isConnected ? (
-                                <button
-                                    onClick={connect}
-                                    disabled={loading}
-                                    className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-800 focus:ring-white disabled:bg-gray-400"
-                                >
-                                    {loading ? 'Connecting...' : 'Connect Wallet'}
-                                </button>
-                            ) : (
-                                <div className="w-full">
-                                    <p className="text-white mb-2">{formatAddress(account)}</p>
-                                    <button
-                                        onClick={disconnect}
-                                        className="w-full px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-800 focus:ring-white"
-                                    >
-                                        Disconnect
-                                    </button>
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </div>
             )}
