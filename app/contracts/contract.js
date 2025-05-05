@@ -1,6 +1,6 @@
 // This module works with both ethers.js v5 and v6
 // Contract address
-export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0xC3Ba5050Ec45990f76474163c5bA673c244aaECA';
+export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0xfc3Bb22BAd0cF254ceD523c224e8224a6859D225';
 
 // Log when contract module is loaded
 console.log("Contract module loaded with address:", CONTRACT_ADDRESS);
