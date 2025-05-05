@@ -120,6 +120,42 @@ contract GreenDish {
     constructor() {
         require(msg.sender != address(0));
         contract_owner = msg.sender;
+
+        // Add initial test data for stable connection
+        address testRestaurant = msg.sender; // Using contract creator as test restaurant
+
+        // Create test restaurant
+        restaurants[testRestaurant] = Restaurant({
+            isVerified: true,
+            name: "GreenDish Demo Restaurant",
+            supplySource: SupplySource.GREEN_PRODUCER,
+            supplyDetails: "Demo restaurant with locally sourced ingredients",
+            registrationTimestamp: block.timestamp,
+            dishIds: new uint[](0)
+        });
+
+        // Create test dish
+        dishCounter++;
+        uint testDishId = dishCounter;
+        dishes[testDishId] = Dish({
+            name: "Demo Salad",
+            mainComponent: "Fresh Vegetables",
+            carbonCredits: 20,
+            price: 0.01 ether,
+            restaurant: testRestaurant,
+            isActive: true
+        });
+
+        // Associate dish with restaurant
+        restaurants[testRestaurant].dishIds.push(testDishId);
+
+        // Emit events
+        emit RestaurantRegistered(
+            testRestaurant,
+            "GreenDish Demo Restaurant",
+            SupplySource.GREEN_PRODUCER
+        );
+        emit DishRegistered(testDishId, testRestaurant, "Demo Salad");
     }
 
     // =============== MODIFIERS =============== //

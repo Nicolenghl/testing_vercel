@@ -88,6 +88,22 @@ export function Web3Provider({ children }) {
             console.log("Contract initialized with address:", CONTRACT_ADDRESS);
             console.log("First few ABI entries:", CONTRACT_ABI.slice(0, 2));
 
+            // Check if the contract is deployed and has code
+            const contractCode = await web3Provider.getCode(CONTRACT_ADDRESS);
+            if (contractCode === '0x' || contractCode === '') {
+                console.warn(`No contract found at ${CONTRACT_ADDRESS}. Make sure it's deployed to the current network.`);
+            } else {
+                console.log("Contract verified with code on current network");
+
+                // Try to fetch dishCounter to validate contract state
+                try {
+                    const dishCounter = await contract.dishCounter();
+                    console.log("Current dish counter:", dishCounter.toString());
+                } catch (err) {
+                    console.warn("Could not fetch dish counter, contract might be incompatible:", err);
+                }
+            }
+
             // Check if the account is a restaurant
             try {
                 const restaurantStatus = await checkIsRestaurant(account, contract);

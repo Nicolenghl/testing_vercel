@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useWeb3 } from '../context/Web3Context';
 import { CONTRACT_ADDRESS, NETWORK_CONFIGS } from '../contracts/contract';
+import { ethers } from 'ethers';
 
 export default function ContractConnectionHelper() {
     const { account, provider, networkValid, chainId, networkName } = useWeb3();
@@ -19,6 +20,31 @@ export default function ContractConnectionHelper() {
             try {
                 const code = await provider.getCode(CONTRACT_ADDRESS);
                 setContractCode(code);
+
+                // If we have contract code, try to validate basic functionality
+                if (code !== '0x' && code !== '') {
+                    try {
+                        // Create a read-only contract instance for testing
+                        const contract = new ethers.Contract(
+                            CONTRACT_ADDRESS,
+                            [
+                                "function dishCounter() view returns (uint256)",
+                                "function contract_owner() view returns (address)"
+                            ],
+                            provider
+                        );
+
+                        // Test basic read functions to validate contract
+                        const dishCounter = await contract.dishCounter();
+                        console.log("Contract validation passed. Dish counter:", dishCounter.toString());
+
+                        // Check contract owner
+                        const owner = await contract.contract_owner();
+                        console.log("Contract owner:", owner);
+                    } catch (functionError) {
+                        console.warn("Contract code exists but functions may be incompatible:", functionError);
+                    }
+                }
             } catch (error) {
                 console.error("Error checking contract code:", error);
                 setContractCode(null);
@@ -28,7 +54,7 @@ export default function ContractConnectionHelper() {
         };
 
         checkContract();
-    }, [provider, account]);
+    }, [provider, account, chainId]);
 
     // Determine the status and message
     const getStatusInfo = () => {
