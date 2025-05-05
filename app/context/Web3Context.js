@@ -69,39 +69,55 @@ export function Web3Provider({ children }) {
     const initializeContract = async (account, web3Provider) => {
         try {
             let signer;
-            // Try ethers v5 syntax first
-            if (web3Provider.getSigner) {
-                signer = web3Provider.getSigner();
-            }
-            // Try ethers v6 syntax
-            else if (web3Provider.getSigner) {
-                signer = await web3Provider.getSigner();
-            }
-            else {
-                throw new Error("Could not get signer - ethers.js API incompatibility");
+
+            // Use a more generic approach to get the signer
+            try {
+                // Try various methods to get a signer
+                if (typeof web3Provider.getSigner === 'function') {
+                    signer = web3Provider.getSigner();
+                } else if (web3Provider.signer) {
+                    signer = web3Provider.signer;
+                } else {
+                    throw new Error("Could not get signer from provider");
+                }
+            } catch (signerError) {
+                console.error("Error getting signer:", signerError);
+                throw new Error("Failed to get signer. Please check wallet connection.");
             }
 
-            const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-            setContract(contract);
+            // Create contract instance with minimal requirements
+            try {
+                const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+                console.log("Contract initialized with address:", CONTRACT_ADDRESS);
+                setContract(contract);
 
-            // Log contract address and ABI for debugging
-            console.log("Contract initialized with address:", CONTRACT_ADDRESS);
-            console.log("First few ABI entries:", CONTRACT_ABI.slice(0, 2));
+                // Basic validation that doesn't depend on specific ethers version
+                if (!contract.address) {
+                    throw new Error("Contract address is undefined");
+                }
+            } catch (contractError) {
+                console.error("Contract initialization error:", contractError);
+                throw new Error("Failed to initialize contract. Check address and ABI.");
+            }
 
             // Check if the contract is deployed and has code
-            const contractCode = await web3Provider.getCode(CONTRACT_ADDRESS);
-            if (contractCode === '0x' || contractCode === '') {
-                console.warn(`No contract found at ${CONTRACT_ADDRESS}. Make sure it's deployed to the current network.`);
-            } else {
-                console.log("Contract verified with code on current network");
+            try {
+                const contractCode = await web3Provider.getCode(CONTRACT_ADDRESS);
+                if (contractCode === '0x' || contractCode === '') {
+                    console.warn(`No contract found at ${CONTRACT_ADDRESS}. Make sure it's deployed to the current network.`);
+                } else {
+                    console.log("Contract verified with code on current network");
 
-                // Try to fetch dishCounter to validate contract state
-                try {
-                    const dishCounter = await contract.dishCounter();
-                    console.log("Current dish counter:", dishCounter.toString());
-                } catch (err) {
-                    console.warn("Could not fetch dish counter, contract might be incompatible:", err);
+                    // Try to fetch dishCounter to validate contract state
+                    try {
+                        const dishCounter = await contract.dishCounter();
+                        console.log("Current dish counter:", dishCounter.toString());
+                    } catch (err) {
+                        console.warn("Could not fetch dish counter, contract might be incompatible:", err);
+                    }
                 }
+            } catch (codeError) {
+                console.error("Error checking contract code:", codeError);
             }
 
             // Check if the account is a restaurant

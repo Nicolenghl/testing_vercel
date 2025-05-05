@@ -1,6 +1,6 @@
 // This module works with both ethers.js v5 and v6
 // Contract address
-export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0xfc3Bb22BAd0cF254ceD523c224e8224a6859D225';
+export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0xd1a19A3CbebDD2aB2FA5F32E7D3423E385c499dc';
 
 // Log when contract module is loaded
 console.log("Contract module loaded with address:", CONTRACT_ADDRESS);
@@ -1114,7 +1114,12 @@ export const NETWORK_CONFIGS = {
             symbol: 'AXC',
             decimals: 18
         },
-        rpcUrls: ['https://rpc5.gemini.axiomesh.io'],
+        // Add multiple RPC URLs for better reliability
+        rpcUrls: [
+            'https://rpc5.gemini.axiomesh.io',
+            'https://rpc4.gemini.axiomesh.io',
+            'https://rpc1.gemini.axiomesh.io'
+        ],
         blockExplorerUrls: ['https://scan.gemini.axiomesh.io']
     },
     // Ethereum Mainnet

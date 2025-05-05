@@ -11,6 +11,51 @@ export default function ContractConnectionHelper() {
     const [loading, setLoading] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
 
+    // Fallback method to check contract existence
+    const checkContractWithFetch = async () => {
+        if (!chainId) return false;
+
+        try {
+            // Get the appropriate RPC URL based on current chain
+            const networkConfig = NETWORK_CONFIGS[chainId.toString()];
+            if (!networkConfig || !networkConfig.rpcUrls || networkConfig.rpcUrls.length === 0) {
+                console.error("No RPC URL available for current network");
+                return false;
+            }
+
+            const rpcUrl = networkConfig.rpcUrls[0];
+            console.log("Checking contract with direct RPC fetch:", rpcUrl);
+
+            // Create a simple JSON-RPC request to check code at the contract address
+            const response = await fetch(rpcUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 1,
+                    method: 'eth_getCode',
+                    params: [CONTRACT_ADDRESS, 'latest']
+                }),
+            });
+
+            const data = await response.json();
+            console.log("RPC response:", data);
+
+            if (data.result && data.result !== '0x') {
+                console.log("Contract exists according to direct RPC call");
+                return true;
+            } else {
+                console.log("Contract does not exist according to direct RPC call");
+                return false;
+            }
+        } catch (error) {
+            console.error("Error in fallback contract check:", error);
+            return false;
+        }
+    };
+
     // Check contract code when account or network changes
     useEffect(() => {
         const checkContract = async () => {
@@ -18,13 +63,30 @@ export default function ContractConnectionHelper() {
 
             setLoading(true);
             try {
+                console.log(`Checking contract at address: ${CONTRACT_ADDRESS}`);
+                console.log(`Current network: ${networkName || chainId}`);
+
                 const code = await provider.getCode(CONTRACT_ADDRESS);
                 setContractCode(code);
 
-                // If we have contract code, try to validate basic functionality
+                console.log(`Contract code received: ${code.slice(0, 10)}...${code === '0x' ? ' (empty)' : ''}`);
+
+                // If contract code is empty, try fallback method
+                if (code === '0x' || code === '') {
+                    console.log("Trying fallback method to check contract...");
+                    const exists = await checkContractWithFetch();
+                    if (exists) {
+                        console.log("Fallback method detected the contract exists!");
+                        // If fallback finds it but provider doesn't, there might be a provider issue
+                        alert("Contract detected through direct RPC call but not through your wallet provider. Try refreshing or switching network in your wallet.");
+                    }
+                }
+
+                // The rest of the function remains unchanged
                 if (code !== '0x' && code !== '') {
                     try {
-                        // Create a read-only contract instance for testing
+                        // Create a read-only contract instance for testing with minimal ABI
+                        console.log("Attempting to create contract instance for validation");
                         const contract = new ethers.Contract(
                             CONTRACT_ADDRESS,
                             [
@@ -35,19 +97,31 @@ export default function ContractConnectionHelper() {
                         );
 
                         // Test basic read functions to validate contract
+                        console.log("Testing dishCounter function...");
                         const dishCounter = await contract.dishCounter();
                         console.log("Contract validation passed. Dish counter:", dishCounter.toString());
 
                         // Check contract owner
+                        console.log("Testing contract_owner function...");
                         const owner = await contract.contract_owner();
                         console.log("Contract owner:", owner);
                     } catch (functionError) {
                         console.warn("Contract code exists but functions may be incompatible:", functionError);
+                        console.log("Error details:", JSON.stringify(functionError).slice(0, 200));
                     }
                 }
             } catch (error) {
                 console.error("Error checking contract code:", error);
+                console.log("Error details:", JSON.stringify(error).slice(0, 200));
                 setContractCode(null);
+
+                // Try fallback method if provider check fails
+                console.log("Provider check failed. Trying fallback method...");
+                const exists = await checkContractWithFetch();
+                if (exists) {
+                    console.log("Contract exists according to fallback check");
+                    alert("Contract exists according to direct RPC call, but your wallet provider couldn't verify it. Try refreshing or reconnecting your wallet.");
+                }
             } finally {
                 setLoading(false);
             }
@@ -78,7 +152,7 @@ export default function ContractConnectionHelper() {
             return {
                 status: 'error',
                 title: 'Contract Not Found',
-                message: `No contract found at ${CONTRACT_ADDRESS} on the current network (${networkName || `Chain ID: ${chainId}`}). You need to deploy your contract to this network or switch to a network where it's deployed.`
+                message: `No contract found at ${CONTRACT_ADDRESS} on the current network (${networkName || `Chain ID: ${chainId}`}). You need to deploy your contract to this network or switch to a network where it's deployed. Note: Ethereum addresses are case-sensitive in checksum format.`
             };
         }
 
