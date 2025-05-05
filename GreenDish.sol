@@ -6,7 +6,7 @@ pragma solidity ^0.8.0;
  */
 contract GreenDish {
     // =============== STATE VARIABLES =============== //
-    address public owner;
+    address public contract_owner;
     uint public dishCounter;
     bool private _locked;
 
@@ -119,12 +119,12 @@ contract GreenDish {
     // =============== CONSTRUCTOR =============== //
     constructor() {
         require(msg.sender != address(0));
-        owner = msg.sender;
+        contract_owner = msg.sender;
     }
 
     // =============== MODIFIERS =============== //
     modifier onlyOwner() {
-        require(msg.sender == owner);
+        require(msg.sender == contract_owner);
         _;
     }
 
@@ -522,7 +522,7 @@ contract GreenDish {
 
     function withdrawEth(uint _amount) external onlyOwner nonReentrant {
         require(address(this).balance >= _amount, "Insufficient balance");
-        (bool success, ) = payable(owner).call{value: _amount}("");
+        (bool success, ) = payable(contract_owner).call{value: _amount}("");
         require(success, "Transfer failed");
     }
 
