@@ -87,6 +87,23 @@ export default function RestaurantProfile() {
             </div>
 
             <div className="bg-green-50 p-4 rounded-lg mb-6">
+                <h2 className="text-lg font-semibold text-green-800 mb-2">Green Dish Rewards</h2>
+                <p className="text-gray-700 mb-2">
+                    When customers purchase your sustainable dishes, they automatically earn GreenCoin (GRC) rewards.
+                </p>
+                <p className="text-gray-700 mb-2">
+                    The amount of tokens they receive depends on:
+                </p>
+                <ul className="list-disc ml-6 mb-2 text-gray-700">
+                    <li>The carbon credits assigned to your dish</li>
+                    <li>The customer's loyalty tier (Bronze, Silver, Gold, or Platinum)</li>
+                </ul>
+                <p className="text-gray-700">
+                    Higher carbon credits and loyalty tiers result in greater rewards, incentivizing sustainable choices.
+                </p>
+            </div>
+
+            <div className="bg-green-50 p-4 rounded-lg mb-6">
                 <h2 className="text-lg font-semibold text-green-800 mb-2">Simplified Mode</h2>
                 <p className="text-gray-700 mb-2">
                     Your application is running in compatibility mode with a non-GreenDish contract.

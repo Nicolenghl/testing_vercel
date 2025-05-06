@@ -221,6 +221,20 @@ export default function RestaurantRegister() {
         <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow-lg mt-10">
             <h1 className="text-2xl font-bold text-green-800 mb-6">Restaurant Registration</h1>
 
+            {tokenRewardsAvailable && isConnected && (
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
+                    <p className="text-green-700 font-medium">
+                        💎 Token Rewards System
+                    </p>
+                    <p className="text-green-700 mb-2">
+                        When customers purchase dishes from your restaurant, they'll automatically earn GreenCoin (GRC) tokens as rewards.
+                    </p>
+                    <p className="text-green-700">
+                        The reward amount is based on the carbon credits of each dish and the customer's loyalty tier.
+                    </p>
+                </div>
+            )}
+
             {!tokenRewardsAvailable && isConnected && (
                 <div className="mb-6 p-4 bg-yellow-50 border border-yellow-300 rounded-md">
                     <p className="text-yellow-700 font-medium">

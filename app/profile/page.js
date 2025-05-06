@@ -120,6 +120,19 @@ export default function Profile() {
                     </div>
 
                     <div className="bg-green-50 p-4 rounded-lg mb-6">
+                        <h2 className="text-lg font-semibold text-green-800 mb-2">How to Earn GreenCoins</h2>
+                        <p className="text-gray-700 mb-2">
+                            GreenCoins (GRC) can only be earned by purchasing sustainable dishes from verified restaurants.
+                        </p>
+                        <p className="text-gray-700 mb-2">
+                            The reward amount is based on the carbon credits of the dish and your loyalty tier.
+                        </p>
+                        <p className="text-gray-700">
+                            <span className="font-medium">Loyalty Tiers:</span> Bronze (1.0x) → Silver (1.1x) → Gold (1.25x) → Platinum (1.5x)
+                        </p>
+                    </div>
+
+                    <div className="bg-green-50 p-4 rounded-lg mb-6">
                         <h2 className="text-lg font-semibold text-green-800 mb-2">Simplified Mode</h2>
                         <p className="text-gray-700">
                             Your application is running in compatibility mode with a non-GreenDish contract.

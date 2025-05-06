@@ -121,49 +121,15 @@ contract GreenDish {
         require(msg.sender != address(0));
         contract_owner = msg.sender;
 
-        // Add initial test data for stable connection
-        address testRestaurant = msg.sender; // Using contract creator as test restaurant
+        // Initialize token supply for the contract owner
+        // This creates an initial supply of 100,000 GRC (10% of max supply)
+        uint256 initialSupply = 100000 * 10 ** 18;
 
-        // Create test restaurant
-        restaurants[testRestaurant] = Restaurant({
-            isVerified: true,
-            name: "GreenDish Demo Restaurant",
-            supplySource: SupplySource.GREEN_PRODUCER,
-            supplyDetails: "Demo restaurant with locally sourced ingredients",
-            registrationTimestamp: block.timestamp,
-            dishIds: new uint[](0)
-        });
-
-        // Create test dish
-        dishCounter++;
-        uint testDishId = dishCounter;
-        dishes[testDishId] = Dish({
-            name: "Demo Salad",
-            mainComponent: "Fresh Vegetables",
-            carbonCredits: 20,
-            price: 0.01 ether,
-            restaurant: testRestaurant,
-            isActive: true
-        });
-
-        // Associate dish with restaurant
-        restaurants[testRestaurant].dishIds.push(testDishId);
-
-        // Emit events
-        emit RestaurantRegistered(
-            testRestaurant,
-            "GreenDish Demo Restaurant",
-            SupplySource.GREEN_PRODUCER
-        );
-        emit DishRegistered(testDishId, testRestaurant, "Demo Salad");
+        // Use the private mint function to create initial tokens
+        _mint(contract_owner, initialSupply);
     }
 
     // =============== MODIFIERS =============== //
-    modifier onlyOwner() {
-        require(msg.sender == contract_owner);
-        _;
-    }
-
     modifier onlyVerifiedRestaurant() {
         require(restaurants[msg.sender].isVerified, "Not verified");
         _;
@@ -201,19 +167,30 @@ contract GreenDish {
         uint _dishCarbonCredits,
         uint _dishPrice
     ) external nonReentrant {
-        require(!restaurants[msg.sender].isVerified);
-        require(bytes(_name).length > 0 && bytes(_name).length <= 50);
+        require(!restaurants[msg.sender].isVerified, "Already registered");
+        require(
+            bytes(_name).length > 0 && bytes(_name).length <= 50,
+            "Invalid restaurant name"
+        );
         require(
             bytes(_supplyDetails).length > 0 &&
-                bytes(_supplyDetails).length <= 200
+                bytes(_supplyDetails).length <= 200,
+            "Invalid supply details"
         );
-        require(bytes(_dishName).length > 0 && bytes(_dishName).length <= 50);
+        require(
+            bytes(_dishName).length > 0 && bytes(_dishName).length <= 50,
+            "Invalid dish name"
+        );
         require(
             bytes(_dishMainComponent).length > 0 &&
-                bytes(_dishMainComponent).length <= 50
+                bytes(_dishMainComponent).length <= 50,
+            "Invalid main component"
         );
-        require(_dishPrice > 0);
-        require(_dishCarbonCredits > 0 && _dishCarbonCredits <= 100);
+        require(_dishPrice > 0, "Price must be positive");
+        require(
+            _dishCarbonCredits > 0 && _dishCarbonCredits <= 100,
+            "Invalid carbon credits"
+        );
 
         restaurants[msg.sender] = Restaurant({
             isVerified: true,
@@ -247,13 +224,21 @@ contract GreenDish {
         uint _price,
         bool _isActive
     ) external onlyVerifiedRestaurant nonReentrant {
-        require(bytes(_name).length > 0 && bytes(_name).length <= 50);
+        require(
+            bytes(_name).length > 0 && bytes(_name).length <= 50,
+            "Invalid dish name"
+        );
         require(
             bytes(_mainComponent).length > 0 &&
-                bytes(_mainComponent).length <= 50
+                bytes(_mainComponent).length <= 50,
+            "Invalid main component"
         );
-        require(_price > 0);
-        require(_carbonCredits > 0 && _carbonCredits <= 100);
+        require(_price > 0, "Price must be positive");
+        require(
+            _carbonCredits > 0 && _carbonCredits <= 100,
+            "Invalid carbon credits"
+        );
+
         dishCounter++;
         dishes[dishCounter] = Dish({
             name: _name,
@@ -286,8 +271,11 @@ contract GreenDish {
             require(dish.isActive, "Dish already inactive");
             dish.isActive = false;
         } else {
-            require(bytes(_name).length > 0 && bytes(_name).length <= 50);
-            require(_price > 0);
+            require(
+                bytes(_name).length > 0 && bytes(_name).length <= 50,
+                "Invalid dish name"
+            );
+            require(_price > 0, "Price must be positive");
             dish.name = _name;
             dish.price = _price;
             dish.isActive = _isActive;
@@ -393,10 +381,8 @@ contract GreenDish {
 
         if (rewardAmount > 0) {
             if (totalSupply + rewardAmount <= MAX_SUPPLY) {
-                // Mint tokens directly to the customer
-                totalSupply += rewardAmount;
-                balances[msg.sender] += rewardAmount;
-                emit Transfer(address(0), msg.sender, rewardAmount);
+                // Mint tokens directly to the customer using the private mint function
+                _mint(msg.sender, rewardAmount);
                 emit PurchaseRewarded(_dishId, msg.sender, rewardAmount);
                 userTransactions[msg.sender][txIndex].status = TransactionStatus
                     .REWARDED;
@@ -525,7 +511,8 @@ contract GreenDish {
         return true;
     }
 
-    function mint(address to, uint256 amount) external onlyOwner {
+    // Private mint function - only callable internally by the purchaseDish function
+    function _mint(address to, uint256 amount) private {
         require(to != address(0), "Zero address");
         require(totalSupply + amount <= MAX_SUPPLY, "Exceeds max supply");
         totalSupply += amount;
@@ -556,9 +543,9 @@ contract GreenDish {
         return MAX_SUPPLY - totalSupply;
     }
 
-    function withdrawEth(uint _amount) external onlyOwner nonReentrant {
+    function withdrawEth(uint _amount) external nonReentrant {
         require(address(this).balance >= _amount, "Insufficient balance");
-        (bool success, ) = payable(contract_owner).call{value: _amount}("");
+        (bool success, ) = payable(msg.sender).call{value: _amount}("");
         require(success, "Transfer failed");
     }
 

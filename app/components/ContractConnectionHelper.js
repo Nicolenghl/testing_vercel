@@ -231,6 +231,12 @@ export default function ContractConnectionHelper() {
                     </div>
 
                     <div className="mt-3">
+                        <h4 className="font-medium">Token Rewards:</h4>
+                        <p className="mt-1">GreenCoin (GRC) tokens can only be earned through dish purchases.</p>
+                        <p className="mt-1">The reward amount depends on the dish's carbon credits and your loyalty tier.</p>
+                    </div>
+
+                    <div className="mt-3">
                         <h4 className="font-medium">Troubleshooting Steps:</h4>
                         <ol className="list-decimal ml-5 mt-1">
                             <li>Make sure your contract is deployed to your current network</li>
